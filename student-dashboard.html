@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Dashboard | Digital Learning Nabha</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .dashboard-container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .dashboard-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .progress-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    .progress-table th, .progress-table td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+    .progress-table th {
+      background-color: #f2f2f2;
+      font-weight: bold;
+    }
+    .progress-bar {
+      width: 100%;
+      background-color: #f0f0f0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 20px;
+      background-color: #2196F3;
+      text-align: center;
+      color: white;
+      font-size: 12px;
+      line-height: 20px;
+    }
+    header {
+      background-color: #2196F3;
+      color: white;
+      padding: 10px 0;
+      text-align: center;
+    }
+    header .logo {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    header nav {
+      margin-top: 10px;
+    }
+    header nav a {
+      color: white;
+      text-decoration: none;
+      margin: 0 15px;
+    }
+    header nav a:hover {
+      text-decoration: underline;
+    }
+    footer {
+      text-align: center;
+      padding: 10px 0;
+      background-color: #f2f2f2;
+      margin-top: 20px;
+    }
+    footer p {
+      margin: 0;
+      color: #666;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .btn.success {
+      background-color: #2196F3;
+      color: white;
+    }
+    .btn.success:hover {
+      background-color: #1976D2;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">Digital Learning Nabha</div>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="#" onclick="logout()">Logout</a>
+    </nav>
+  </header>
+  <main>
+    <div class="dashboard-container">
+      <h1 class="dashboard-header">Welcome, <span id="studentName"></span>!</h1>
+      <h2>Your Course Progress</h2>
+      <table class="progress-table">
+        <thead>
+          <tr>
+            <th>Course</th>
+            <th>Progress</th>
+            <th>Last Accessed</th>
+            <th>Quiz Results</th>
+          </tr>
+        </thead>
+        <tbody id="progressTableBody">
+          <!-- Filled by JS -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+  <footer>
+    <p>&copy; 2025 Digital Learning Nabha. All Rights Reserved.</p>
+  </footer>
+  <script src="api-client.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      checkStudentAccess();
+      loadStudentProgress();
+    });
+
+    function checkStudentAccess() {
+      const token = localStorage.getItem('token');
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (!token || !user) {
+        window.location.href = 'signin.html';
+        return;
+      }
+      if (user.role !== 'student') {
+        alert('Access denied. Students only.');
+        window.location.href = 'index.html';
+        return;
+      }
+      document.getElementById('studentName').textContent = user.username || 'Student';
+    }
+
+    async function loadStudentProgress() {
+      try {
+        const response = await fetch('/api/students/progress', {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        const progressData = await response.json();
+        displayProgress(progressData);
+      } catch (error) {
+        console.error('Error loading progress:', error);
+        alert('Error loading your progress');
+      }
+    }
+
+    function displayProgress(progressData) {
+      const tbody = document.getElementById('progressTableBody');
+      tbody.innerHTML = '';
+      progressData.forEach(progress => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${progress.course.title} (${progress.course.subject})</td>
+          <td>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: ${progress.progressPercentage}%">
+                ${progress.progressPercentage}%
+              </div>
+            </div>
+          </td>
+          <td>${new Date(progress.lastAccessedAt).toLocaleDateString()}</td>
+          <td>
+            ${progress.quizResults.map(result =>
+              `<div>Quiz: ${result.score}/${result.totalQuestions} (${new Date(result.completedAt).toLocaleDateString()})</div>`
+            ).join('')}
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = 'signin.html';
+    }
+  </script>
+</body>
+</html>
